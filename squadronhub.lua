@@ -473,7 +473,43 @@ task.spawn(function() while task.wait(3) do if killed then break end if toggleSt
                         for mat,need in pairs(d.awakening.cost) do if mat~="Gold" then local have=getCount(mat) if have < need then
                             local src=nil
                             for _,mod2 in ipairs(RS:GetDescendants()) do if mod2.Parent.Name==mat and mod2.Name=="data" then local ok,d2=pcall(require,mod2) if ok and d2 and d2.description then local w,m,a=d2.description:match("→%s*([^<]+)%s+(%w+)%s+Act%s+([%d, ]+)") if not w then w,a=d2.description:match("→%s*([^<]+)%s+Story Act%s+([%d, ]+)") m="Story" end if w then w=w:gsub("^%s+",""):gsub("%s+$","") a=a:match("%d+") src={world=w,mode=m or "Story",act=a or "1"} break end end end end
-                            if src then statusLbl.Text="EVO: Farming "..mat.." "..have.."/"..need.." at "..src.world.." "..src.mode.." Act "..src.act pcall(function() local r=RS:FindFirstChild("Remotes") if r and r:FindFirstChild("JoinMap") then r.JoinMap:FireServer(src.mode,src.world,src.act,"Hard") end end) didEvo=true return end
+                            if src then
+    statusLbl.Text = "EVO: Farming "..mat.." "..have.."/"..need.." at "..src.world.." "..src.mode.." Act "..src.act
+    pcall(function()
+        local r = RS:FindFirstChild("Remotes")
+        if r and r:FindFirstChild("JoinMap") then
+            r.JoinMap:FireServer(src.mode, src.world, src.act, "Hard")
+        end
+    end)
+   if toggleStates[mfToggle] and toggleStates[invTog] then
+    local need = tonumber(req1Box.Text) or 150
+    local have = getCount(selectedMat)
+    req1Lbl.Text = " "..selectedMat.." "..have.."/"
+    statusLbl.Text = "Status: Farming "..selectedMat.." ("..have.."/"..need..") Priority: "..(useStage and useStage.world or world)
+    if have >= need and toggleStates[autoBack] then
+        statusLbl.Text = "Status: Done "..selectedMat.." - Next: "..(stagePriority[2] and stagePriority[2].world or "lobby")
+        pcall(function() RS.Remotes.ReturnToLobby:FireServer() end)
+        if #stagePriority > 1 then table.remove(stagePriority,1) refreshPrio() end
+    end
+end
+if limitToggles[world] and toggleStates[limitToggles[world].stop] then
+    rerollCounts[world] = (rerollCounts[world] or 0) + 1
+    if rerollCounts[world] > (tonumber(req1Box.Text) or 50) then
+        statusLbl.Text = "Reroll limit hit for "..world.." - skipping"
+        if toggleStates[limitToggles[world].ret] then pcall(function() RS.Remotes.ReturnToLobby:FireServer() end) end
+        if #stagePriority > 0 then table.remove(stagePriority,1) refreshPrio() end
+    end
+end
+pcall(function()
+    local r = RS:FindFirstChild("Remotes")
+    if r and r:FindFirstChild("JoinMap") then
+        r.JoinMap:FireServer(mode, world, act, diff)
+    elseif r and r:FindFirstChild("Play") then
+        r.Play:FindFirstChild("JoinWorld"):FireServer(world, act, mode)
+    end
+end)
+    return
+end
                         end end
                     end
                 end
